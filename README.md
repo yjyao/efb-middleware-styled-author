@@ -30,7 +30,7 @@ master_channel: blueset.telegram
 slave_channels:
   - blueset.wechat
 middlewares:
-  - ... // other middlewares
+  - ... # other middlewares
   - styled_author.styled_author.StyledAuthor
 ```
 
