@@ -1,6 +1,8 @@
 from ehforwarderbot import Middleware
 from ehforwarderbot import coordinator
+from ehforwarderbot import utils as efb_utils
 from functools import wraps
+from ruamel.yaml import YAML
 from telegram.parsemode import ParseMode
 from telegram.replymarkup import ReplyMarkup
 import html
@@ -21,28 +23,49 @@ class StyledAuthor(Middleware):
   AUTHOR_END_TAG = f'{{{middleware_id}_END}}'
 
   AUTHOR_STYLE_STARTS = {
-    ParseMode.HTML: '<i>',
-    ParseMode.MARKDOWN: '__',
-    ParseMode.MARKDOWN_V2: '_',
+    'italic': {
+      ParseMode.HTML: '<i>',
+      ParseMode.MARKDOWN: '__',
+      ParseMode.MARKDOWN_V2: '_',
+    },
+    'bold': {
+      ParseMode.HTML: '<b>',
+      ParseMode.MARKDOWN: '**',
+      ParseMode.MARKDOWN_V2: '*',
+    },
   }
 
   AUTHOR_STYLE_ENDS = {
-    ParseMode.HTML: '</i>',
-    ParseMode.MARKDOWN: '__',
-    ParseMode.MARKDOWN_V2: '_',
+    'italic': {
+      ParseMode.HTML: '</i>',
+      ParseMode.MARKDOWN: '__',
+      ParseMode.MARKDOWN_V2: '_',
+    },
+    'bold': {
+      ParseMode.HTML: '</b>',
+      ParseMode.MARKDOWN: '**',
+      ParseMode.MARKDOWN_V2: '*',
+    },
   }
 
   def __init__(self, instance_id=None):
     super().__init__(instance_id=instance_id)
-    self.author_style_starts = self.AUTHOR_STYLE_STARTS
-    self.author_style_ends = self.AUTHOR_STYLE_ENDS
-
+    self.load_config()
     etm = coordinator.master
     (etm.slave_messages.
      generate_message_template) = self._override_generate_message_template(
        etm.slave_messages.generate_message_template)
     (etm.bot_manager.updater.bot._message) = self._override_tg_bot_message(
       etm.bot_manager.updater.bot._message)
+
+  def load_config(self):
+    try:
+      config = YAML().load(efb_utils.get_config_path(self.middleware_id))
+    except FileNotFoundError:
+      config = {}
+    self.AUTHOR_STYLE = config.get('author_style', 'italic')
+    self.author_style_starts = self.AUTHOR_STYLE_STARTS[self.AUTHOR_STYLE]
+    self.author_style_ends = self.AUTHOR_STYLE_ENDS[self.AUTHOR_STYLE]
 
   def _override_generate_message_template(self, old_generate_message_template):
     @wraps(old_generate_message_template)
